@@ -33,7 +33,7 @@ public class OllamaService {
 
             // HTTP POST 요청 생성
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://127.0.0.1:11434/api/chat"))
+                    .uri(URI.create("http://host.docker.internal:11434/api/chat"))
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/x-ndjson")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
