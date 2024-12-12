@@ -116,13 +116,30 @@ public class OllamaService {
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
             // Return response body
-            return convertToPgVectorFormat(response.body());
+            return convertToPgVectorFormatOfString(response.body());
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch embeddings", e);
         }
     }
 
-    public String convertToPgVectorFormat(String jsonEmbedding) {
+    public String convertToPgVectorFormatOfString(String jsonEmbedding) {
+        try {
+            // Parse the JSON string into a Map
+            EmbeddingResponse response = objectMapper.readValue(jsonEmbedding, EmbeddingResponse.class);
+
+            // Convert the list of embeddings into a PostgreSQL-compatible ARRAY format
+            List<Double> embeddings = response.getEmbedding();
+            String pgVectorFormat = embeddings.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(",", "\'", "\'"));
+
+            return pgVectorFormat;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert embedding to pgvector format", e);
+        }
+    }
+    public String convertToPgVectorFormatOfSQL(String jsonEmbedding) {
         try {
             // Parse the JSON string into a Map
             EmbeddingResponse response = objectMapper.readValue(jsonEmbedding, EmbeddingResponse.class);
