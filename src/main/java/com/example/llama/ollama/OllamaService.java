@@ -131,7 +131,7 @@ public class OllamaService {
             List<Double> embeddings = response.getEmbedding();
             String pgVectorFormat = embeddings.stream()
                     .map(String::valueOf)
-                    .collect(Collectors.joining(",", "\'", "\'"));
+                    .collect(Collectors.joining(",", "[", "]"));
 
             return pgVectorFormat;
 
