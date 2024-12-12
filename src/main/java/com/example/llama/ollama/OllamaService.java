@@ -12,7 +12,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Service
 public class OllamaService {
@@ -33,7 +35,7 @@ public class OllamaService {
 
             // HTTP POST 요청 생성
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://host.docker.internal:11434/api/chat"))
+                    .uri(URI.create("http://127.0.0.1:11434/api/chat"))
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/x-ndjson")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
@@ -93,6 +95,48 @@ public class OllamaService {
         } catch (Exception e) {
             logger.warning("JSON 파싱 오류: " + jsonLine);
             throw new RuntimeException("Error parsing JSON line: " + jsonLine, e);
+        }
+    }
+
+    public String fetchEmbeddings(EmbeddingRequest request) {
+        try {
+            String url = "http://localhost:11434/api/embeddings";
+
+            // Convert request to JSON
+            String requestBody = objectMapper.writeValueAsString(request);
+
+            // Build HTTP request
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            // Send request
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+            // Return response body
+            return convertToPgVectorFormat(response.body());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch embeddings", e);
+        }
+    }
+
+    public String convertToPgVectorFormat(String jsonEmbedding) {
+        try {
+            // Parse the JSON string into a Map
+            EmbeddingResponse response = objectMapper.readValue(jsonEmbedding, EmbeddingResponse.class);
+
+            // Convert the list of embeddings into a PostgreSQL-compatible ARRAY format
+            List<Double> embeddings = response.getEmbedding();
+            String pgVectorFormat = embeddings.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(",", "ARRAY[", "]"));
+
+            return pgVectorFormat;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert embedding to pgvector format", e);
         }
     }
 }
